@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+DISPLAY_NUM="${1:-${DISPLAY_NUM:-1}}"
+GEOMETRY="${GEOMETRY:-1920x1080}"
+DEPTH="${DEPTH:-24}"
+LOGDIR="$HOME/.vnc"; mkdir -p "$LOGDIR"
+LOGFILE="$LOGDIR/vnc-$(date +%F_%H%M%S).log"
+log(){ echo "[$(date '+%F %T')] $*" | tee -a "$LOGFILE"; }
+
+fix_tmp(){ 
+  for d in /tmp/.ICE-unix /tmp/.X11-unix; do
+    [ -d "$d" ] || { sudo mkdir -p "$d" 2>/dev/null || mkdir -p "$d"; }
+    (sudo chown root:root "$d" 2>/dev/null || true)
+    (sudo chmod 1777 "$d" 2>/dev/null || chmod 1777 "$d" || true)
+  done
+}
+
+log "==== VNC UP :$DISPLAY_NUM ===="
+fix_tmp
+sed -i 's/\r$//' "$HOME/.vnc/xstartup" 2>/dev/null || true
+rm -f "/tmp/.X${DISPLAY_NUM}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM}" || true
+if tigervncserver -list 2>/dev/null | grep -q " :${DISPLAY_NUM} "; then
+  tigervncserver -kill ":$DISPLAY_NUM" >>"$LOGFILE" 2>&1 || true
+fi
+tigervncserver ":$DISPLAY_NUM" -localhost yes -geometry "$GEOMETRY" -depth "$DEPTH" >>"$LOGFILE" 2>&1
+port=$((5900 + DISPLAY_NUM))
+log "Connect viewer to localhost:$port  (Colour: Full/True color)"

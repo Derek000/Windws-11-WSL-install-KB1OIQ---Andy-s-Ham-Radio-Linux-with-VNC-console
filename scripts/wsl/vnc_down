@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+DISPLAY_NUM="${1:-${DISPLAY_NUM:-1}}"
+LOGDIR="$HOME/.vnc"; mkdir -p "$LOGDIR"
+LOGFILE="$LOGDIR/vnc-stop-$(date +%F_%H%M%S).log"
+log(){ echo "[$(date '+%F %T')] $*" | tee -a "$LOGFILE"; }
+
+log "==== VNC DOWN :$DISPLAY_NUM ===="
+tigervncserver -kill ":$DISPLAY_NUM" >>"$LOGFILE" 2>&1 || true
+pkill -f "Xtigervnc.*:${DISPLAY_NUM}" 2>/dev/null || true
+rm -f "/tmp/.X${DISPLAY_NUM}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM}" || true
+log "Stopped :$DISPLAY_NUM"
