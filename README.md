@@ -1,65 +1,85 @@
-# Andy's Ham Radio Linux on WSL (Windows 11) — Full Desktop + RTL‑SDR
+# Andy's Ham Radio Linux on WSL (Windows 11) — Full Desktop + RTL-SDR
 
-**Date:** 2025-09-29
+**Updated:** 2025-09-29
 
 ## Why
-Enable a dependable way to run the KB1OIQ “Andy’s Ham Radio Linux” experience on Windows 11 using **WSL2** — with a **stable XFCE desktop via VNC** and **RTL‑SDR passthrough** using either **usbipd‑win (PowerShell)** _or_ **WSL USB Manager**.
+You want a dependable, repeatable way to run the **KB1OIQ “Andy’s Ham Radio Linux” toolset** on **Windows 11** without a heavy VM. This repo gives you a stable **XFCE desktop over VNC** in **WSL2**, plus **RTL‑SDR passthrough** via **usbipd-win**. It *then* points you to the **official sites** for the **latest versions** and helps you install the apps *after* the base environment is ready.
 
 ## Who
-Hams and engineers who want a reproducible, low‑friction setup on Windows 11 (Admin rights required for first‑time driver binding).
+Hams and engineers who value clarity, speed, and reproducibility on Windows 11.
 
 ## What
-This repo contains:
-- Windows scripts to enable WSL, install **usbipd‑win**, optionally install **WSL USB Manager**, attach/detach RTL‑SDR, and auto‑start VNC at logon.
-- WSL scripts to bootstrap **XFCE + TigerVNC**, start/stop VNC, prepare RTL‑SDR, and apply an Ubuntu‑like theme.
-- Task Scheduler XML to auto‑start `wsl.exe ~ -e ~/vnc_up` at user logon.
-
-> Note: We don’t redistribute WSL USB Manager binaries. The included script downloads the latest release directly from its GitHub repository (nickbeth/wsl-usb-manager).
+- **Environment first**: WSL2 + XFCE (VNC) + usbipd-win + (optional) WSL USB Manager GUI.
+- **Then visit the official sites for latest**:
+  - KB1OIQ / Andy’s Ham Radio Linux: <https://sourceforge.net/projects/kb1oiq-andysham/>
+  - WSL USB Manager: <https://github.com/nickbeth/wsl-usb-manager>
+  - usbipd-win: <https://github.com/dorssel/usbipd-win>
+- **Post-setup installers**: Choose a profile (lite/full/sdr-only) and install current packages from Ubuntu repositories.
 
 ---
 
-## Quick Start
+## 0) Visit the official sites (always current)
+Before installing ham apps, **check the latest guidance** from:
+- **KB1OIQ Andy’s Ham Radio Linux (SourceForge)** — release notes, package recommendations, and updates:  
+  <https://sourceforge.net/projects/kb1oiq-andysham/>
+- **WSL USB Manager (GUI for USB → WSL)**:  
+  <https://github.com/nickbeth/wsl-usb-manager>
+- **usbipd-win** (Windows USB/IP):  
+  <https://github.com/dorssel/usbipd-win>
 
-### 1) Windows (PowerShell)
+*Why?* WSL can’t boot an ISO, but we can **replicate the toolset** on Ubuntu. Checking the sites keeps you aligned with the latest versions.
 
-Open **PowerShell as Administrator**, then run:
+---
+
+## 1) Windows: Enable WSL + usbipd-win + (optional) WSL USB Manager
+
+Open **PowerShell as Administrator** and run:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-
-# 1. Enable WSL2 (one-time)
 scripts\windows\01_enable_wsl.ps1
-
-# 2. Install/upgrade usbipd‑win (one-time)
 scripts\windows\02_install_usbipd_win.ps1
-
-# 3. (Optional) Install WSL USB Manager from GitHub releases
+# Optional GUI for USB → WSL:
 scripts\windows\03_install_wsl_usb_manager.ps1
 ```
 
-> If you prefer the GUI path, launch **WSL USB Manager** and use it to **Share/Attach** your RTL‑SDR to your chosen WSL distro.
+If you prefer to open the pages first:
+```powershell
+Start-Process "https://sourceforge.net/projects/kb1oiq-andysham/"
+Start-Process "https://github.com/nickbeth/wsl-usb-manager"
+Start-Process "https://github.com/dorssel/usbipd-win"
+```
 
-### 2) WSL (Ubuntu terminal)
+---
+
+## 2) WSL: Bootstrap the desktop environment
+
+Open **Ubuntu (WSL)** and run:
 
 ```bash
-cd ~/wsl-andys-ham-linux/scripts/wsl
+cd scripts/wsl
 sudo bash ./bootstrap_andys_xfce.sh
 ./theme_ubuntu_yaru.sh   # optional
 ```
 
-Start and stop VNC:
-
+Start/stop VNC (localhost-only):
 ```bash
-~/vnc_up      # start :1
-~/vnc_down    # stop  :1
+~/vnc_up     # start :1
+~/vnc_down   # stop  :1
+```
+Connect with **RealVNC Viewer** to `localhost:1` and set **Colour = Full (True color)**.
+
+You can open the Andy page from WSL too:
+```bash
+./open_andys_site.sh
 ```
 
-Connect with **RealVNC Viewer** to `localhost:1` with **Colour = Full (True color)**.
+---
 
-### 3) RTL‑SDR to WSL
+## 3) Attach your RTL‑SDR (Windows → WSL)
 
 **Option A – GUI (WSL USB Manager)**  
-- Open **WSL USB Manager** → Share/Attach your RTL‑SDR (VID:PID `0bda:2838`) to your target distro.
+Use the app to **Share/Attach** your RTL‑SDR (VID:PID `0bda:2838`) to your target distro.
 
 **Option B – PowerShell**  
 ```powershell
@@ -67,24 +87,47 @@ usbipd list
 usbipd bind --busid <BUSID> --force
 usbipd attach --wsl "<DistroName>" --busid <BUSID>
 ```
-Then in WSL:
+
+**Then in WSL**:
 ```bash
 ./rtl_ready.sh
 ```
 
-### 4) Auto‑start VNC at Windows logon
+---
+
+## 4) Install Andy’s ham applications (post-setup)
+
+1. **Read Andy’s latest guidance**:  
+   <https://sourceforge.net/projects/kb1oiq-andysham/>
+
+2. **Pick a profile and install** (from Ubuntu repos):
+```bash
+# In WSL
+./install_andys_apps.sh full     # or: lite | sdr-only
+```
+
+The script installs commonly-used packages (fldigi, flrig, wsjtx, hamlib, gqrx, gnuradio, gr-osmosdr, direwolf, multimon-ng, sox, pat, xastir, etc.). You can re-run it safely; it’s idempotent.
+
+> For apps that Andy ships outside Ubuntu repos (or where he recommends a newer version), follow his site’s instructions. Our script aims for **stable** defaults in Ubuntu.
+
+---
+
+## 5) Auto-start VNC at Windows logon
 
 ```powershell
-# Registers a Task Scheduler job that runs:
-#   wsl.exe ~ -e bash -lc '~/vnc_up'
+# Registers a Task Scheduler job to run:
+#   wsl.exe ~ -d "<DistroName>" -e bash -lc '~/vnc_up'
 scripts\windows\register_vnc_autostart.ps1 -DistroName "Ubuntu"
 ```
 
 ---
 
-## Notes
-- VNC is **localhost‑only**; use SSH tunnelling for remote access.
-- GNOME Shell is not recommended on headless WSL; XFCE is used for reliability.
-- For the KB1OIQ image content, install packages you need inside the XFCE desktop (e.g., fldigi, wsjtx, direwolf, chirp, gnuradio).
+## Troubleshooting & Security
+See `docs/TROUBLESHOOTING.md` and `docs/SECURITY.md`.
 
-See `docs/TROUBLESHOOTING.md` and `docs/FAQ.md` for more.
+---
+
+## What next?
+- Configure your ham apps (audio devices, CAT control, PTT).
+- Keep an eye on Andy’s SourceForge page for new releases.
+- Prefer **XFCE** for reliability on WSL; GNOME Shell is not recommended on headless WSL.
